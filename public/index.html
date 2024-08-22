@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NFC Reader and Writer</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/froala-editor/4.0.13/css/froala_editor.min.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+  </head>
+  <body>
+    <h1>NFC Reader and Writer</h1>
+    <div>
+      <button id="readNFCButton">Read NFC Card</button>
+      <pre id="nfcData">NFC Data display in here</pre>
+    </div>
+    <div>
+      <h2>Froala Text Editor</h2>
+      <div id="froala-editor"></div>
+      <button id="writeNFCButton">Write to NFC Card</button>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/froala-editor/4.0.13/js/froala_editor.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", (event) => {
+        const froalaEditor = new FroalaEditor("#froala-editor");
+
+        document
+          .getElementById("readNFCButton")
+          .addEventListener("click", async () => {
+            try {
+              const response = await fetch("/read");
+              const data = await response.json();
+              let displayData = "";
+              if (data.error) {
+                displayData = data.error;
+              } else {
+                console.log(data);
+                displayData = `
+ATR: ${data.data.atr}
+Standard: ${data.data.standard}
+Type: ${data.data.type}
+UID: ${data.data.uid}
+Data: ${data.data.data}
+                        `;
+              }
+              document.getElementById("nfcData").textContent = displayData;
+              console.log(data.data);
+              froalaEditor.html.set(data.data.data);
+            } catch (error) {
+              console.error("Error reading NFC card:", error);
+              document.getElementById("nfcData").textContent =
+                "Error reading NFC card";
+            }
+          });
+
+        document
+          .getElementById("writeNFCButton")
+          .addEventListener("click", async () => {
+            let htmlContent = froalaEditor.html.get();
+            let cleanText = htmlContent.replace(/<\/?p>/g, '');
+            console.log(cleanText);
+            try {
+              const response = await fetch("/write", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ dataToWrite: cleanText }),
+              });
+              const result = await response.json();
+              alert(result.message);
+            } catch (error) {
+              console.error("Error writing to NFC card:", error);
+              alert("Error writing to NFC card");
+            }
+          });
+      });
+    </script>
+  </body>
+</html>
